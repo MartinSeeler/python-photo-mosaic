@@ -2,6 +2,7 @@ import time
 import itertools
 import random
 import sys
+import os
 
 import numpy as np
 from PIL import Image
@@ -209,29 +210,29 @@ def coords_from_middle(x_count, y_count, y_bias=1, shuffle_first=0, ):
     return coords
     
 
-def create_mosaic(source_path, target, tile_ratio=1920/800, tile_width=75, enlargement=8, reuse=True, color_mode='RGB', tile_paths=None, shuffle_first=30):
-    """Forms an mosiac from an original image using the best
+def create_mosaic(source_path, target, tile_ratio=1920/800, tile_width=75, enlargement=8, reuse=True, color_mode='RGB', tile_dir=None, shuffle_first=30):
+    """Forms a mosaic from an original image using the best
     tiles provided. This reads, processes, and keeps in memory
     a copy of the source image, and all the tiles while processing.
 
     Arguments:
-    source_path -- filepath to the source image for the mosiac
-    target -- filepath to save the mosiac
+    source_path -- filepath to the source image for the mosaic
+    target -- filepath to save the mosaic
     tile_ratio -- height/width of mosaic tiles in pixels
     tile_width -- width of mosaic tiles in pixels
     enlargement -- mosaic image will be this many times wider and taller than the original
     reuse -- Should we reuse tiles in the mosaic, or just use each tile once?
     color_mode -- L for greyscale or RGB for color
-    tile_paths -- List of filepaths to your tiles
-    shuffle_first -- Mosiac will be filled out starting in the center for best effect. Also, 
+    tile_dir -- Directory containing your tile images
+    shuffle_first -- Mosaic will be filled out starting in the center for best effect. Also, 
         we will shuffle the order of assessment so that all of our best images aren't 
         necessarily in one spot.
     """
     config = Config(
-        tile_ratio = tile_ratio,		# height/width of mosaic tiles in pixels
-        tile_width = tile_width,		# height/width of mosaic tiles in pixels
-        enlargement = enlargement,	    # the mosaic image will be this many times wider and taller than the original
-        color_mode = color_mode,	    # L for greyscale or RGB for color
+        tile_ratio = tile_ratio,        # height/width of mosaic tiles in pixels
+        tile_width = tile_width,        # height/width of mosaic tiles in pixels
+        enlargement = enlargement,      # the mosaic image will be this many times wider and taller than the original
+        color_mode = color_mode,        # L for greyscale or RGB for color
     )
     # Pull in and Process Original Image
     print('Setting Up Target image')
@@ -240,7 +241,19 @@ def create_mosaic(source_path, target, tile_ratio=1920/800, tile_width=75, enlar
     # Setup Mosaic
     mosaic = MosaicImage(source_image.image, target, config)
 
-    # Assest Tiles, and save if needed, returns directories where the small and large pictures are stored
+    # Gather all image file paths from the directory
+    if tile_dir is None:
+        raise ValueError('tile_dir must be provided and point to a directory containing tile images.')
+    valid_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.gif'}
+    tile_paths = [
+        os.path.join(tile_dir, f)
+        for f in os.listdir(tile_dir)
+        if os.path.splitext(f)[1].lower() in valid_exts
+    ]
+    if not tile_paths:
+        raise ValueError(f'No image files found in directory: {tile_dir}')
+
+    # Assess Tiles, and save if needed, returns directories where the small and large pictures are stored
     print('Assessing Tiles')
     tile_box = TileBox(tile_paths, config)
 
